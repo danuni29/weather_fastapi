@@ -2,10 +2,11 @@ import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from bs4 import BeautifulSoup
 import pandas as pd
 
 app = FastAPI()
+
+
 
 
 @app.get("/buan/temp")
@@ -27,13 +28,31 @@ def buan_temp():
     # print(group_df.count())
 
     # df = group_df.tavg.quantile([0.25, 0.75])
-    df = group_df['tavg'].describe()[['25%', '75%']]
+    result = group_df['tavg'].describe()[['25%', '75%']]
 
-    return df
+    return result
 
-@app.get("/buan/temp/{day}")
-def buan_temp_day(day: str):
-        pass
+@app.get("/buan/temp/{date}")
+def buan_temp_by_day(date : str):
+    buan_df = pd.read_csv('buan_2004_2023.csv')
+
+    buan_df.columns = buan_df.columns.str.strip()
+    print(buan_df.columns)
+
+    buan_df = buan_df.loc[~buan_df.month.isin([7, 8, 9]), ['year', 'month', 'day', 'tavg', 'rainfall']]
+
+    # buan_df['date'] = buan_df['month'] + buan_df['day']
+
+    # zfill -> 자리수 맞춰줌
+    buan_df['date'] = buan_df['month'].astype(str).str.zfill(2) + buan_df['day'].astype(str).str.zfill(2)
+
+    filtered_df = buan_df[buan_df['date'] == date]
+
+    result = filtered_df['tavg'].describe()[['25%', '75%']].to_dict()
+
+    return result
+
+
 
 
 @app.get("/iksan/temp")
@@ -58,6 +77,25 @@ def iksan_temp():
 
     return df
 
+@app.get("/iksan/temp/{date}")
+def iksan_temp_by_day(date: str):
+    iksan_df = pd.read_csv('iksan_2004_2023.csv')
+
+    iksan_df.columns = iksan_df.columns.str.strip()
+
+    iksan_df = iksan_df.loc[~iksan_df.month.isin([7, 8, 9]), ['year', 'month', 'day', 'tavg', 'rainfall']]
+
+    # buan_df['date'] = buan_df['month'] + buan_df['day']
+
+    # zfill -> 자리수 맞춰줌
+    iksan_df['date'] = iksan_df['month'].astype(str).str.zfill(2) + iksan_df['day'].astype(str).str.zfill(2)
+
+    filtered_df = iksan_df[iksan_df['date'] == date]
+
+    result = filtered_df['tavg'].describe()[['25%', '75%']].to_dict()
+
+    return result
+
 
 @app.get("/buan/rainfall")
 def buan_rainfall():
@@ -75,6 +113,8 @@ def buan_rainfall():
     # print(rain_df.describe()[['25%', '75%']])
 
     return round(rain_df.describe()[['25%', '75%']], 2)
+
+
 
 @app.get("/iksan/rainfall")
 def iksan_rainfall():
